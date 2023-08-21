@@ -7,6 +7,8 @@ There is however a suitable system for *XR-Controllers* in the form of *Configur
 
 These scripts automatically assigns a side to *Thrustmaster T16000M* sticks by reading the value of the little switch on the bottom.
 
+Additionally the sides get updated automatically at runtime, should the switch be flipped again - or another device be plugged in.
+
 # Usage
 
 Just place both scripts somewhere in your project.

@@ -89,10 +89,11 @@ public static class JoyStickT16kmHandVerifier
             fixed (void* bufferPointer = stateBuffer)
             {
                 // Just read the bare data from memory
+                // https://github.com/Unity-Technologies/InputSystem/blob/585047ccb5138dff1e2662cd0be453193a585f6f/Packages/com.unity.inputsystem/InputSystem/Controls/InputControlExtensions.cs#L403
                 InputControlExtensions.CopyState(device, bufferPointer, 4);
 
 
-                // get the correct bit
+                // Get the correct bit
                 // https://stackoverflow.com/questions/4854207/get-a-specific-bit-from-byte
                 bool isRight = (stateBuffer[3] & 0b00100000) != 0;
 
