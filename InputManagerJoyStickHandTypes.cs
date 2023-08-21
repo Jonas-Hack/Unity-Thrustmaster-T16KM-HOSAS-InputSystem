@@ -23,15 +23,14 @@ using UnityEditor;
 #endif
 public static class InputManagerJoyStickHandTypes
 {
-    static InputManagerJoyStickHandTypes()
-    {
-        Initialize();
-    }
-
+    /// <summary>
+    /// Modifies the Input Device Layout of the Joysticks
+    /// Adds additional information on left/right handedness
+    /// </summary>
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Initialize()
     {
-        // Give the Option to choose between hands in UI
+        // Give the Option to choose between hands in UI for any Joystick
         // https://forum.unity.com/threads/two-identical-joysticks.639691/
         InputSystem.RegisterLayoutOverride(@"
               {

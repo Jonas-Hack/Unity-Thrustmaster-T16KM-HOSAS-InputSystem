@@ -23,13 +23,13 @@ using UnityEditor;
 #endif
 public static class JoyStickT16kmHandVerifier
 {
+    /// <summary>
+    /// Inital Setup of the Sticks. Makes sure to listen to any changes
+    /// </summary>
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void OnEnable()
     {
-        // Register Handedness after Devices have had a chance to setup
-        //StartCoroutine(delayedRegistration());
-
-        // Make sure to also check any Sticks, which have been added too late
+        // Make sure to also check any Sticks, which get plugged in sometime later
         InputSystem.onDeviceChange += (device, change) =>
         {
             switch (change)
@@ -48,7 +48,7 @@ public static class JoyStickT16kmHandVerifier
         };
 
 
-        // Update Sticks, if someone changes their mind
+        // Change the settings of sticks, if their switch is flipped
         // Listen for any device with "leftRightSwitch" both press/release and do not perform disambiguation
         InputAction changeHandAction = new InputAction(binding: "*/leftRightSwitch", type: InputActionType.PassThrough);
         changeHandAction.performed += (_ => registerAllSticks());
@@ -56,13 +56,9 @@ public static class JoyStickT16kmHandVerifier
         changeHandAction.Enable();
     }
 
-    static IEnumerator delayedRegistration()
-    {
-        yield return new WaitForEndOfFrame();
-        registerAllSticks();
-        yield return null;
-    }
-
+    /// <summary>
+    /// Looks throuigh all devices and then decides on the side each joystick should use.
+    /// </summary>
     static void registerAllSticks()
     {
         // Look at all devices
@@ -74,6 +70,10 @@ public static class JoyStickT16kmHandVerifier
         }
     }
 
+    /// <summary>
+    /// Reads the switch on Thrustmaster T16000M joysticks and then assigns them the appropiate side.
+    /// </summary>
+    /// <param name="device">The joystick Input Device</param>
     static unsafe void registerStick(InputDevice device)
     {
         // Only care about my specific joystick type
@@ -109,6 +109,11 @@ public static class JoyStickT16kmHandVerifier
         }
     }
 
+    /// <summary>
+    /// Sets the side (left/right) of the device.
+    /// </summary>
+    /// <param name="device">InputDevice - hopefully a T16000M</param>
+    /// <param name="isRight">Is the stick left or right handed?</param>
     static void setStickStatus(InputDevice device, bool isRight)
     {
         InputSystem.SetDeviceUsage(device, (isRight ? CommonUsages.RightHand : CommonUsages.LeftHand));
