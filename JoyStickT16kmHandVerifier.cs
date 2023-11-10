@@ -15,18 +15,25 @@
 
 using UnityEngine;
 using UnityEngine.InputSystem;
-using System.Collections;
+using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.InputSystem.Utilities;
 
 #if UNITY_EDITOR
 using UnityEditor;
-[InitializeOnLoad]
 #endif
+
+using System.Runtime.InteropServices;
+
+
 public static class JoyStickT16kmHandVerifier
 {
     /// <summary>
     /// Inital Setup of the Sticks. Makes sure to listen to any changes
     /// </summary>
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+#if UNITY_EDITOR
+    [InitializeOnLoadMethod]
+#endif
     static void OnEnable()
     {
         // Make sure to also check any Sticks, which get plugged in sometime later
@@ -74,7 +81,7 @@ public static class JoyStickT16kmHandVerifier
     /// Reads the switch on Thrustmaster T16000M joysticks and then assigns them the appropiate side.
     /// </summary>
     /// <param name="device">The joystick Input Device</param>
-    static unsafe void registerStick(InputDevice device)
+    static void registerStick(InputDevice device)
     {
         // Only care about my specific joystick type
         if (device.description.product == "T.16000M")
@@ -83,30 +90,19 @@ public static class JoyStickT16kmHandVerifier
             // https://docs.unity3d.com/Packages/com.unity.inputsystem@1.0/api/UnityEngine.InputSystem.InputControlExtensions.html
             // https://github.com/Unity-Technologies/InputSystem/blob/585047ccb5138dff1e2662cd0be453193a585f6f/Packages/com.unity.inputsystem/InputSystem/Controls/InputControlExtensions.cs#L403
 
-            // Need bit 29 of the state of the t19km stick
-            byte[] stateBuffer = new byte[4];
-            //https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/unsafe-code
-            fixed (void* bufferPointer = stateBuffer)
-            {
-                // Just read the bare data from memory
-                // https://github.com/Unity-Technologies/InputSystem/blob/585047ccb5138dff1e2662cd0be453193a585f6f/Packages/com.unity.inputsystem/InputSystem/Controls/InputControlExtensions.cs#L403
-                InputControlExtensions.CopyState(device, bufferPointer, 4);
+            // To prevent unsafe code, I switched to the variation of the CopyState method, whithout pointers
+            // This is potentially slower, but doens't force the AllowUnsafeBlocks compile option
 
 
-                // Get the correct bit
-                // https://stackoverflow.com/questions/4854207/get-a-specific-bit-from-byte
-                bool isRight = (stateBuffer[3] & 0b00100000) != 0;
+            // Need the 29th bit of the state of the t19km stick
+            // Read the date from the device memory
+            T16KMState state;
+            device.CopyState(out state);
 
-                /*
-                // Debug read data
-                string hexBuffer = System.BitConverter.ToString(stateBuffer);
-                string lastInBinary = (System.Convert.ToString(stateBuffer[3], 2).PadLeft(8, '0'));
-                Debug.Log(device.displayName + ": " + hexBuffer + ", " + lastInBinary + ", " + isRight);
-                */
-
-                // Now tell the input system
-                setStickStatus(device, isRight);
-            }
+            // Get the correct bit
+            bool isRight = (state.leftRightSwitch & 0b00100000) != 0;
+            setStickStatus(device, isRight);
+            
         }
     }
 
@@ -119,5 +115,27 @@ public static class JoyStickT16kmHandVerifier
     {
         InputSystem.SetDeviceUsage(device, (isRight ? CommonUsages.RightHand : CommonUsages.LeftHand));
         //TODO: left-right switch mirrors the layout of all buttons
+    }
+
+
+
+    // Used to store t16kmdevice State
+    // https://docs.unity3d.com/Packages/com.unity.inputsystem@1.7/manual/Devices.html#device-state
+    // This could also be used to define the layout, but I prefer to do it in InputJoyStickHandTypes.cs
+    // It might be cleaner to switch to this way entirely, instead of going half way with both
+    [StructLayout(LayoutKind.Explicit, Size = 4)] // 34 bit ~ 4.25 byte, but only need 29th bit, so 4 byte is ok
+    internal struct T16KMState : IInputStateTypeInfo
+    {
+        // ID needs to match stick format in State viewer
+        // Typically you'd want something unique here, but this Layout does not get officially registered. I just use it as if it were
+        public FourCC format => new FourCC('H', 'I', 'D');
+
+
+        // The all important switch
+        [UnityEngine.InputSystem.Layouts.InputControl(name = "leftRightSwitch", layout = "Button", offset = 0, bit = 29, sizeInBits = 1)]
+        [FieldOffset(3)] public byte leftRightSwitch;
+
+
+        // Not adding any of the other controls, because this not a "global" definition of the device and thus doesn't need to be complete
     }
 }
