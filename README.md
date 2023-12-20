@@ -35,11 +35,19 @@ Additionally the value of ```leftRightSwitch```can be read directly:
 ````
 Though I see no reason to do so.
 
-**NOTE:** To get notified of *ANY* change in stick side, take a look at the usage of `InputActionType.PassThrough` at ``JoyStickT16kmHandVerifier.cs/61``.
+**NOTE:** To get notified of *ANY* change in stick side, take a look at the usage of `InputActionType.PassThrough` at ``SidedTM16KM.cs/141``.
 
+## Support for other Joysticks
+
+For now this *ONLY* works for *Thrustmaster T16000M* joysticks. However, support for other sticks can be added:
+
+1. Analogous to ``SidedTM16KM.cs``:  
+a) Register another `Layout Override` for your stick
+b). Create another ``registerStick`` method
+3. Then add it to the ``supportedSticks`` dictionary in ``HOSASManager.cs/31``. 
+
+If you do so, please create a pull request, so we can all benefit.
 
 ## Acknowledgements
-
-This *ONLY* works for *Thrustmaster T16000M* joysticks. Any other flight sticks can be supported as explained at ``JoyStickT16kmHandVerifier.cs/190``.
 
 This is based on two Unity Forum posts: [1](https://forum.unity.com/threads/two-identical-joysticks.639691/), [2](https://forum.unity.com/threads/t-16000m-read-left-hand-right-hand-switch.873124/), though some quality of life features, as well as some bug-fixes, are entirely my own.
