@@ -5,8 +5,11 @@
  * Based on https://forum.unity.com/threads/t-16000m-read-left-hand-right-hand-switch.873124/
  * Just place this script somewhere in your project.
  * 
- * You can add support for other flight sticks by writing registerStick methods 
- * analagous to this one and adding them to the dictionary in HOSASManager
+ * You can add support for other flight sticks by 
+ * 1. Creating an Input Layout Override
+ * 2. Adding a binding using the SidedStickInitialize Attribute
+ * 3. Creating a registerStick method
+ * 4. Adding the method using the SidedStickRegistrate Attribute
  */
 
 using System.Runtime.InteropServices;
@@ -16,16 +19,38 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.InputSystem.Utilities;
 
-#if UNITY_EDITOR
-using UnityEditor;
-[InitializeOnLoad]
-#endif
 public static class SidedTM16KM
 {
+    /// <summary>
+    /// Modifies the Input Device Layout of the Joysticks
+    /// Adds additional information on left/right handedness
+    /// Adds left/right-switch
+    /// Registers with the HOSAS Manager
+    /// </summary>
+    [SidedStickInitialize("*/leftRightSwitch")]
+    public static void Initialize()
+    {
+        // Add switch to input Layout
+        // Read Thrustmaster T16000m "Handedness"-Switch 
+        // https://forum.unity.com/threads/t-16000m-read-left-hand-right-hand-switch.873124/
+        InputSystem.RegisterLayoutOverride(@"
+            {
+                ""name"" : ""T16000MWithLeftRightSwitch"",
+                ""extend"" : ""HID::Thrustmaster T.16000M"",
+                ""beforeRender"" : ""Update"",
+                ""controls"" : [
+                    { ""name"" : ""leftRightSwitch"", ""layout"" : ""Button"", ""offset"" : 0, ""bit"" : 29, ""sizeInBits"" : 1}
+                ]
+            }
+        ");      
+    }
+
+
     /// <summary>
     /// Attempts to read the side side the stick is supposed to be on & then assigns it accordingly
     /// </summary>
     /// <param name="device">The joystick Input Device</param>
+    [SidedStickRegistrate("T.16000M")]
     public static void registerStick(InputDevice device)
     {
         // Reads the switch on Thrustmaster T16000M joysticks and then assigns them the appropiate side.
@@ -114,41 +139,13 @@ public static class SidedTM16KM
         }
     }
 
-    /// <summary>
-    /// Modifies the Input Device Layout of the Joysticks
-    /// Adds additional information on left/right handedness
-    /// Adds left/right-switch
-    /// </summary>
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-    private static void Initialize()
-    {
-        // Read Thrustmaster T16000m "Handedness"-Switch 
-        // https://forum.unity.com/threads/t-16000m-read-left-hand-right-hand-switch.873124/
-        InputSystem.RegisterLayoutOverride(@"
-            {
-                ""name"" : ""T16000MWithLeftRightSwitch"",
-                ""extend"" : ""HID::Thrustmaster T.16000M"",
-                ""beforeRender"" : ""Update"",
-                ""controls"" : [
-                    { ""name"" : ""leftRightSwitch"", ""layout"" : ""Button"", ""offset"" : 0, ""bit"" : 29, ""sizeInBits"" : 1}
-                ]
-            }
-        ");
-
-        // Change the settings of sticks, if their switch is flipped
-        // Listen for any device with "leftRightSwitch" both press/release and do not perform disambiguation
-        // TODO: This more of a management task and maybe should be left in HOSASManager.cs
-        InputAction changeHandAction = new InputAction(binding: "*/leftRightSwitch", type: InputActionType.PassThrough);
-        changeHandAction.performed += HOSASManager.registerStickFromAction;
-        changeHandAction.canceled += HOSASManager.registerStickFromAction;
-        changeHandAction.Enable();
-    }
+    
 }
 
 
 // Used to store t16kmdevice State
 // https://docs.unity3d.com/Packages/com.unity.inputsystem@1.7/manual/Devices.html#device-state
-// This could also be used to define the layout, but I prefer to do it as seen aboves
+// This could also be used to define the layout, but I prefer to do it as seen above
 // It might be cleaner to switch to this way entirely, instead of going half way with both
 [StructLayout(LayoutKind.Explicit, Size = 4)] // 34 bit ~ 4.25 byte, but only need 29th bit, so 4 byte is ok
 internal struct T16KMState : IInputStateTypeInfo
